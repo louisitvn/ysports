@@ -1,24 +1,80 @@
-<p id="notice"><%= notice %></p>
+<div class="container-fluid">
+  <div style="margin:20px 0 20px">
+    <div class="row">
+      <div class="col-md-12">
+        
+        <p id="notice"><%= notice %></p>
+        
+        <h3>Match Details</h3>
 
-<p>
-  <strong>League:</strong>
-  <%= @match.league %>
-</p>
+        <p>
+          <strong>Title:</strong>
+          <%= @match.title %>
+        </p>
 
-<p>
-  <strong>Season:</strong>
-  <%= @match.season %>
-</p>
+        <p>
+          <strong>League:</strong>
+          <%= @match.league %>
+        </p>
 
-<p>
-  <strong>Datetime:</strong>
-  <%= @match.datetime %>
-</p>
+        <p>
+          <strong>Season:</strong>
+          <%= @match.season %>
+        </p>
 
-<p>
-  <strong>Title:</strong>
-  <%= @match.title %>
-</p>
+        <p>
+          <strong>Datetime:</strong>
+          <%= @match.datetime %>
+        </p>
 
-<%= link_to 'Edit', edit_match_path(@match) %> |
-<%= link_to 'Back', matches_path %>
+        <%= link_to 'Edit', edit_match_path(@match) %> |
+        <%= link_to 'Back', matches_path %>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <h3>Home: <%= @match.home_team.name %></h3>
+        <table class="display table" cellspacing="0" width="100%">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Statistics</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <% @match.home_player_statistics.each do |player_stat| %>
+              <tr>
+                <td><%= link_to player_stat.player.name, player_path(player_stat.player) %></td>
+                <td><%= raw player_stat.attributes.select{|k,v| !['created_at', 'updated_at', 'id', 'match_id', 'player_id'].include?(k.to_s) && !v.blank?}.map{|k,v| "#{k}:<strong>#{v}</strong>" }.join(" | ") %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="col-md-6">
+        <h3>Away: <%= @match.away_team.name %></h3>
+        <table class="display table" cellspacing="0" width="100%">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Statistics</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <% @match.away_player_statistics.each do |player_stat| %>
+              <tr>
+                <td><%= link_to player_stat.player.name, player_path(player_stat.player) %></td>
+                <td><%= raw player_stat.attributes.select{|k,v| !['created_at', 'updated_at', 'id', 'match_id', 'player_id'].include?(k.to_s) && !v.blank?}.map{|k,v| "#{k}:<strong>#{v}</strong>" }.join(" | ") %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+

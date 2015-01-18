@@ -23,6 +23,66 @@ class InitDbSchema < ActiveRecord::Migration
     end
 
     create_table :match_players do |t|
+      t.float :passing_comp
+      t.float :passing_att
+      t.float :passing_yds
+      t.float :passing_pct
+      t.float :passing_y_a
+      t.float :passing_sack
+      t.float :passing_yds_l
+      t.float :passing_td
+      t.float :passing_int
+      t.float :passing_qb_rat
+      t.float :passing_fum_l
+
+      t.float :rushing_rush
+      t.float :rushing_yds
+      t.float :rushing_avg
+      t.float :rushing_long
+      t.float :rushing_td
+      t.float :rushing_fum_l
+
+      t.float :receiving_rec
+      t.float :receiving_tgt
+      t.float :receiving_yds
+      t.float :receiving_avg
+      t.float :receiving_long
+      t.float :receiving_td
+      t.float :receiving_fum_l
+
+      t.float :kicking_xpm
+      t.float :kicking_xpa
+      t.float :kicking_fgm
+      t.float :kicking_fga
+      t.float :kicking_long
+      t.float :kicking_pct
+      t.float :kicking_pts
+
+      t.float :punting_punt
+      t.float :punting_avg
+      t.float :punting_in20
+      t.float :punting_tb
+
+      t.float :returns_kr
+      t.float :returns_yds
+      t.float :returns_avg
+      t.float :returns_long
+      t.float :returns_td
+      t.float :returns_pr
+      t.float :returns_yds
+      t.float :returns_avg
+      t.float :returns_long
+      t.float :returns_td
+
+      t.float :defense_solo
+      t.float :defense_ast
+      t.float :defense_sack
+      t.float :defense_yds_l
+      t.float :defense_pd
+      t.float :defense_int
+      t.float :defense_yds
+      t.float :defense_int_td
+
       t.timestamps null: false
     end
 
