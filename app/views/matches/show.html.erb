@@ -8,13 +8,12 @@
         <h3>Match Details</h3>
 
         <p>
-          <strong>Title:</strong>
           <%= @match.title %>
         </p>
 
         <p>
           <strong>League:</strong>
-          <%= @match.league %>
+          <%= @match.league.upcase %>
         </p>
 
         <p>
@@ -23,12 +22,39 @@
         </p>
 
         <p>
-          <strong>Datetime:</strong>
+          <strong>Date:</strong>
           <%= @match.datetime %>
         </p>
+      </div>
+    </div>
 
-        <%= link_to 'Edit', edit_match_path(@match) %> |
-        <%= link_to 'Back', matches_path %>
+    <div class="row">
+      <div class="col-md-12">
+        
+        <table class="display table" cellspacing="0" width="100%">
+          <thead>
+            <tr>
+              <th></th>
+              <th><%= @match.away_team.name %></th>
+              <th><%= @match.home_team.name %></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <%
+              away_attrs = @match.away_team_statistics.attributes.delete_if {|k,v| ['id', 'team_id', 'created_at', 'updated_at'].include?(k.to_s) }
+              home_attrs = @match.home_team_statistics.attributes.delete_if {|k,v| ['id', 'team_id', 'created_at', 'updated_at'].include?(k.to_s) }
+            %>
+            
+            <% away_attrs.keys.each_with_index {|k, i| %>
+            <tr>
+              <td><%= k.upcase %></td>
+              <td><%= away_attrs.values[i] %></td>
+              <td><%= home_attrs.values[i] %></td>
+            </tr>
+            <% } %>
+          </tbody>
+        </table>
       </div>
     </div>
 

@@ -1,15 +1,24 @@
 class Match < ActiveRecord::Base
-  has_many :match_teams
+  has_many :match_teams, dependent: :destroy
+  has_many :match_players, dependent: :destroy
+
   has_many :teams, through: :match_teams
   has_many :players, through: :match_players
-  has_many :match_players
-
+  
   def home_team
-    teams.first
+    teams.last
   end
 
   def away_team
-    teams.last
+    teams.first
+  end
+
+  def home_team_statistics
+    match_teams.last
+  end
+
+  def away_team_statistics
+    match_teams.first
   end
 
   def home_player_statistics

@@ -1,4 +1,11 @@
 Rails.application.routes.draw do
+  resources :tasks do 
+    member do 
+      post :start
+      post :stop
+    end
+  end
+
   resources :matches
 
   resources :players

@@ -45,3 +45,5 @@ end
 
 gem 'execjs'
 gem 'therubyracer'
+gem 'mechanize'
+gem 'kaminari'

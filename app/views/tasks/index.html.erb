@@ -1,0 +1,41 @@
+<div class="container-fluid">
+  <div style="margin:20px 0 20px">
+    <div class="row">
+      <div class="col-md-6">
+        <p id="notice"><%= notice %></p>
+
+        <h1>Listing Tasks</h1>
+
+        <table class="display table" cellspacing="0" width="100%">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Interval</th>
+              <th>Pid</th>
+              <th>Status</th>
+              <th>Last Check</th>
+              <th colspan="3"></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <% @tasks.each do |task| %>
+              <tr>
+                <td><%= link_to task.name, edit_task_path(task) %></td>
+                <td><%= task.interval %></td>
+                <td><%= task.pid ? task.pid : '#' %></td>
+                <td><%= task.status %></td>
+                <td><%= task.last_exec %></td>
+                <% if task.running? %>
+                  <td><%= button_to 'Stop', stop_task_path(task) %></td>
+                <% else %>
+                  <td><%= button_to 'Start', start_task_path(task) %></td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

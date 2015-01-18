@@ -5,3 +5,6 @@
 #
 #   cities = City.create([{ name: 'Chicago' }, { name: 'Copenhagen' }])
 #   Mayor.create(name: 'Emanuel', city: cities.first)
+
+# Create default scraping task
+Task.create name: 'Yahoo Sports', status: 'Stopped', progress: '0%'
