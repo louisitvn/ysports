@@ -4,6 +4,11 @@ class Match < ActiveRecord::Base
 
   has_many :teams, through: :match_teams
   has_many :players, through: :match_players
+
+  OVER = 'over'
+  ONGOING = 'ongoing'
+
+  scope :over, -> { where(status: 'over') }
   
   def home_team
     teams.last

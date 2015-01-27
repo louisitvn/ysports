@@ -18,6 +18,7 @@ class InitDbSchema < ActiveRecord::Migration
       t.string :url
       t.datetime :datetime
       t.string :title
+      t.string :status, default: 'over'
 
       t.timestamps null: false
     end
@@ -82,6 +83,44 @@ class InitDbSchema < ActiveRecord::Migration
       t.float :defense_int
       t.float :defense_yds
       t.float :defense_int_td
+
+      t.string :ongoing_min
+      t.string :ongoing_fg
+      t.string :ongoing_3pt
+      t.string :ongoing_ft
+      t.string :ongoing_increase_decrease
+      t.float :ongoing_off
+      t.float :ongoing_def
+      t.float :ongoing_reb
+      t.float :ongoing_ast
+      t.float :ongoing_to
+      t.float :ongoing_stl
+      t.float :ongoing_blk
+      t.float :ongoing_ba
+      t.float :ongoing_pf
+      t.float :ongoing_pts
+
+      t.float :skaters_g
+      t.float :skaters_a
+      t.float :skaters_pts
+      t.float :skaters_increase
+      t.float :skaters_pim
+      t.float :skaters_sog
+      t.float :skaters_bks
+      t.float :skaters_hits
+      t.float :skaters_take
+      t.float :skaters_give
+      t.float :skaters_fw
+      t.float :skaters_fl
+      t.string :skaters_fo_percentage
+      t.string :skaters_shifts
+      t.string :skaters_toi
+
+      t.float :goaltending_sa
+      t.float :goaltending_ga
+      t.float :goaltending_sv
+      t.string :goaltending_sv_percentage
+      t.string :goaltending_toi
 
       t.timestamps null: false
     end

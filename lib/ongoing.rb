@@ -95,6 +95,7 @@ class Match < ActiveRecord::Base
   ONGOING = 'ongoing'
 
   scope :over, -> { where(status: 'over') }
+  scope :ongoing, -> { where(status: 'ongoing') }
 end
 
 class MatchTeam < ActiveRecord::Base
@@ -281,9 +282,6 @@ end
 
 class Scrape
   SITE = 'http://sports.yahoo.com/'
-  LEAGUES = [
-    'nfl', 'mlb', 'nhl', 'nba', 'nhl', 'ncaaf', 'ncaab', 'nascar', 'mma'
-  ]
 
   def initialize
     $logger.info "Scraper started"
@@ -293,62 +291,48 @@ class Scrape
   end
 
   def start
-    LEAGUES.each do |league|
-      scoreboard_url = File.join(SITE, league.downcase, 'scoreboard')
-      run(scoreboard_url, {league: league})
+    ps = @a.get(SITE)
+    ongoing_matches = ps.parser.css('li dl.stats > dt > a').select{|a| a.attributes['title'] && a.attributes['title'].value[/^Current/] }.map{|a| File.join(SITE, a.attributes['href'].value) }
+    $logger.info "#{ongoing_matches.count} ongoing matches found"
+    ongoing_matches.each do |match_url|
+      meta = {
+        league: match_url[/(?<=yahoo.com\/)[^\/]+/],
+        status: 'ongoing'
+        # season: nil
+      }
+      get_match(match_url, meta)
     end
-  end
-
-  def run(url, meta)
-    $logger.info "Checking league #{url}"
-    ps = @a.try do |scr|
-      scr.get(url).parser
-    end
-
-    meta.merge!(
-      season: ps.css('#seasons > option[selected]').first ? ps.css('#seasons > option[selected]').first.text.strip : nil
-    )
-    
-    match_urls = ps.css('tr.game.link:not(.pre)').map{|tr| tr.attributes['data-url'].value}
-    $logger.info "#{match_urls.count} match url(s) found"
-    match_urls.each do |match_url| 
-      ActiveRecord::Base.transaction {  get_match(match_url, meta) }
-    end
-
   end
 
   def get_match(match_url, meta)
+    p match_url
     $logger.info "Scraping match: #{match_url}"
 
-    if Match.exists?(url: match_url)
-      $logger.info "Match already exists"
-      return
-    end
+    match = Match.ongoing.where(url: match_url).first_or_initialize
+    match.attributes.merge!(meta)
+    
 
     resp = @a.try do |scr|
       scr.get(match_url)
     end
-
+    
     return if resp.nil?
 
     ps = resp.parser
 
-    File.open('/tmp/test.html', 'w') {|f| f.write resp.body}
-    
-    if ps.css('table.linescore > tbody > tr:nth-child(1) > td > a').first
-      team1_url = File.join(SITE, ps.css('table.linescore > tbody > tr:nth-child(1) > td > a').first.attributes['href'].value)
-      team2_url = File.join(SITE, ps.css('table.linescore > tbody > tr:nth-child(2) > td > a').first.attributes['href'].value)
-
-      tdscore1 = ps.css('.linescore > tbody > tr:nth-child(1) > td')
-      tdscore2 = ps.css('.linescore > tbody > tr:nth-child(2) > td')
+    # if match already finished
+    if ps.css('li.status > em').select{|e| e.text[/live/i]}.empty?
+      $logger.info "Match already done: #{match_url}"
+      match.destroy
+      return true
     else
-      team1_url = File.join(SITE, ps.css('div.team.away div.name > a').first.attributes['href'].value)
-      team2_url = File.join(SITE, ps.css('div.team.home div.name > a').first.attributes['href'].value)
-
-      tdscore1 = ps.css('.linescore table > tbody > tr:nth-child(1) > td')
-      tdscore2 = ps.css('.linescore table > tbody > tr:nth-child(2) > td')
+      match.save! if match.new_record?
     end
     
+    team1_url = File.join(SITE, ps.css('div.team.away div.name > a').first.attributes['href'].value)
+    team2_url = File.join(SITE, ps.css('div.team.home div.name > a').first.attributes['href'].value)
+    
+    $logger.info "Retrieving teams"
     if Team.exists?(url: team1_url)
       team1 = Team.find_by_url(team1_url)
     else
@@ -360,20 +344,10 @@ class Scrape
     else
       team2 = scrape_team(team2_url)
     end
-    
-    # match info
-    match = Match.create(meta.merge(
-        title: "#{team1.name} vs. #{team2.name}",
-        url: match_url,
-        status: 'over',
-        datetime: Time.parse(ps.css('#mediamodulematchheadergrandslam li.left > ul > li').first.xpath('text()').text.strip).to_s
-      )
-    )
 
+    $logger.info "Retrieving teams stats"
     team1_stat = match.match_teams.new(team: team1)
-    team2_stat = match.match_teams.new(team: team2)
-    
-    team1_stat.attributes = ps.css('#mediasportsmatchteamstats > div > table > tbody > tr').map{|tr|  [tr.css('> th').first.text.strip.underscore.gsub(/\s+/, "_"), tr.css('> td:nth-child(2)').first.text.strip]}.to_h
+    tdscore1 = ps.css('.linescore table > tbody > tr:nth-child(1) > td')
     team1_stat[:score_1] = tdscore1[1].text.strip if tdscore1[1]
     team1_stat[:score_2] = tdscore1[2].text.strip if tdscore1[2]
     team1_stat[:score_3] = tdscore1[3].text.strip if tdscore1[3]
@@ -381,8 +355,9 @@ class Scrape
     team1_stat[:score_ot] = tdscore1[5].text.strip if tdscore1[5]
     team1_stat[:score_total] = tdscore1[6].text.strip if tdscore1[6]
     team1_stat.save!
-
-    team2_stat.attributes = ps.css('#mediasportsmatchteamstats > div > table > tbody > tr').map{|tr|  [tr.css('> th').first.text.strip.underscore.gsub(/\s+/, "_"), tr.css('> td:nth-child(3)').first.text.strip]}.to_h
+    
+    team2_stat = match.match_teams.new(team: team2)
+    tdscore2 = ps.css('.linescore table > tbody > tr:nth-child(2) > td')
     team2_stat[:score_1] = tdscore2[1].text.strip if tdscore2[1]
     team2_stat[:score_2] = tdscore2[2].text.strip if tdscore2[2]
     team2_stat[:score_3] = tdscore2[3].text.strip if tdscore2[3]
@@ -390,16 +365,11 @@ class Scrape
     team2_stat[:score_ot] = tdscore2[5].text.strip if tdscore2[5]
     team2_stat[:score_total] = tdscore2[6].text.strip if tdscore2[6]
     team2_stat.save!
-
-    # player statistics
     
-    if ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?('Goaltending')}.first or ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?('Passing')}.first
-      if ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?('Goaltending')}.first
-        groups = ['Goaltending', 'Skaters']
-      else
-        groups = ['Passing', 'Rushing', 'Receiving', 'Kicking', 'Punting', 'Returns', 'Defense']
-      end
-      
+
+    if ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?('Goaltending')}.first
+      groups = ['Goaltending', 'Skaters']
+    
       groups.each do |group|
         ### Away
         passing_headers1 = ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?(group)}.first.parent.parent.css('h4')[0].next_element.css('table > thead > tr > th' ).map{|e| e.text.strip.gsub('+/-', 'increase').gsub('%', '_percentage')}.map{|e| "#{group.downcase}_" + e.underscore.gsub(/[\s\/]+/, "_")}[1..-1]
@@ -411,7 +381,7 @@ class Scrape
         passing_rows2 = ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?(group)}.first.parent.parent.css('h4')[1].next_element.css('table > tbody > tr' )
         process_players(passing_headers2, passing_rows2, match, team2)
       end
-    else
+    else    
       away_headers = ps.css('div.data-container')[0].css('> table > thead > tr > th').map{|e| e.text.strip.downcase}.map{|e| (e.include?('+/-')) ? 'increase_decrease' : e }.uniq[1..-1].map{|e| "ongoing_#{e}"}
       away_rows = ps.css('div.data-container')[0].css('> table > tbody > tr')
       process_players(away_headers, away_rows, match, team1)
@@ -420,6 +390,8 @@ class Scrape
       home_rows = ps.css('div.data-container')[1].css('> table > tbody > tr')
       process_players(home_headers, home_rows, match, team2)
     end
+
+    $logger.info "-----------------------------------------"
   end
 
   def process_players(headers, rows, match, team)
@@ -436,12 +408,10 @@ class Scrape
       return if player.nil?
 
       player_stat = player.match_players.where(match_id: match.id, player_id: player.id).first_or_initialize
-      
       # extract attributes
       attrs = {}
       values = row.css('td').map{|e| e.text.strip}
       headers.zip(values) { |a,b| attrs[a.to_sym] = b }
-      
       # update
       player_stat.attributes = attrs
       player_stat.save!
@@ -457,20 +427,8 @@ class Scrape
       return Player.find_by_url(url: player_url)
     end
     
-    ps = nil
-
-    3.times do |i|
-      ps = @a.try do |scr|
-        scr.get(player_url).parser
-      end
-
-      return if ps.nil?
-
-      if ps.css('div.player-info h1').first
-        break
-      else
-        sleep 5
-      end
+    ps = @a.try do |scr|
+      scr.get(player_url).parser
     end
 
     return if ps.nil?
@@ -514,7 +472,6 @@ catch :ctrl_c do
     $logger.info("Start at #{Time.now.to_s}")
     e = Scrape.new
     e.start
-    #e.run('http://sports.yahoo.com/nfl/scoreboard/?week=20&phase=3&season=2014', {league: 'nfl'})
     $logger.info("Finish at #{Time.now.to_s}")
     $task.update_attributes(last_exec: Time.now) if $task
   end
