@@ -4,12 +4,8 @@ class MatchesController < ApplicationController
   # GET /matches
   # GET /matches.json
   def index
-    @ongoing_matches = Match.ongoing.order('ID')
-    @matches = Match.over.page params[:page]
-  end
-
-  def live
-    @matches = Match.ongoing.order('ID')
+    @ongoing_matches = Match.ongoing
+    @matches = Match.over.order('ID DESC').page params[:page]
   end
 
   # GET /matches/1
