@@ -13,7 +13,7 @@
 
         <p>
           <strong>League:</strong>
-          <%= @match.league.upcase %>
+          <%= @match.league.upcase if @match.league %>
         </p>
 
         <p>
@@ -47,11 +47,12 @@
             %>
             
             <% away_attrs.keys.each_with_index {|k, i| %>
-            <tr>
-              <td><%= k.upcase %></td>
-              <td><%= away_attrs.values[i] %></td>
-              <td><%= home_attrs.values[i] %></td>
-            </tr>
+              <% next if away_attrs.values[i].blank? and home_attrs.values[i].blank? %>
+              <tr>
+                <td><%= k.upcase %></td>
+                <td><%= away_attrs.values[i] %></td>
+                <td><%= home_attrs.values[i] %></td>
+              </tr>
             <% } %>
           </tbody>
         </table>
