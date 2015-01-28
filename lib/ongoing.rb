@@ -331,8 +331,6 @@ class Scrape
     
     team1_url = File.join(SITE, ps.css('div.team.away div.name > a').first.attributes['href'].value)
     team2_url = File.join(SITE, ps.css('div.team.home div.name > a').first.attributes['href'].value)
-
-    match.update_attributes(title: "#{team1.name} vs. #{team2.name}")
     
     $logger.info "Retrieving teams"
     if Team.exists?(url: team1_url)
@@ -346,6 +344,8 @@ class Scrape
     else
       team2 = scrape_team(team2_url)
     end
+
+    match.update_attributes(title: "#{team1.name} vs. #{team2.name}")
 
     $logger.info "Retrieving teams stats"
     team1_stat = match.match_teams.new(team: team1)
