@@ -94,7 +94,8 @@ class Match < ActiveRecord::Base
   OVER = 'over'
   ONGOING = 'ongoing'
 
-  scope :over, -> { where(status: 'over') }
+  scope :over, -> { where(status: OVER) }
+  scope :ongoing, -> { where(status: ONGOING) }
 end
 
 class MatchTeam < ActiveRecord::Base
@@ -309,7 +310,7 @@ class Scrape
       season: ps.css('#seasons > option[selected]').first ? ps.css('#seasons > option[selected]').first.text.strip : nil
     )
     
-    match_urls = ps.css('tr.game.link:not(.pre)').map{|tr| tr.attributes['data-url'].value}
+    match_urls = ps.css('tr.game.link:not(.pre)').map{|tr| File.join(SITE, tr.attributes['data-url'].value) }
     $logger.info "#{match_urls.count} match url(s) found"
     match_urls.each do |match_url| 
       ActiveRecord::Base.transaction {  get_match(match_url, meta) }
@@ -319,6 +320,12 @@ class Scrape
 
   def get_match(match_url, meta)
     $logger.info "Scraping match: #{match_url}"
+    
+    # mark a match as OVER
+    if Match.ongoing.exists?(url: match_url)
+      match = Match.ongoing.where(url: match_url).first
+      match.destroy if match
+    end
 
     if Match.exists?(url: match_url)
       $logger.info "Match already exists"

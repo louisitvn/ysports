@@ -8,7 +8,8 @@ class Match < ActiveRecord::Base
   OVER = 'over'
   ONGOING = 'ongoing'
 
-  scope :over, -> { where(status: 'over') }
+  scope :over, -> { where(status: OVER) }
+  scope :ongoing, -> { where(status: ONGOING) }
   
   def home_team
     teams.last

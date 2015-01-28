@@ -5,7 +5,8 @@ class Task < ActiveRecord::Base
   STOPPED = 'stopped'
   FAILED = 'failed'
 
-  PATH = File.join(Rails.root, 'lib/scrape.rb')
+  PATH_OVER = File.join(Rails.root, 'lib/scrape.rb')
+  PATH_ONGOING = File.join(Rails.root, 'lib/ongoing.rb')
 
   before_create :set_status
 
@@ -76,8 +77,12 @@ class Task < ActiveRecord::Base
       self.progress = 'Starting...'
       self.save
 
-      cmd = "ruby #{PATH} -t #{self.id} -i #{self.interval}"
-      
+      if self.name == 'Yahoo Sports (Ongoing)'
+        cmd = "ruby #{PATH_ONGOING} -t #{self.id} -i #{self.interval}"
+      else
+        cmd = "ruby #{PATH_OVER} -t #{self.id} -i #{self.interval}"
+      end
+
       process = IO.popen(cmd)
       Process.detach(process.pid)
       self.pid = process.pid

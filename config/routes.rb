@@ -6,7 +6,11 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :matches
+  resources :matches do 
+    collection do 
+      get :live
+    end
+  end
 
   resources :players
 

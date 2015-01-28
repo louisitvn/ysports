@@ -7,4 +7,7 @@
 #   Mayor.create(name: 'Emanuel', city: cities.first)
 
 # Create default scraping task
-Task.create name: 'Yahoo Sports', status: 'Stopped', progress: '0%'
+Task.delete_all
+
+Task.create name: 'Yahoo Sports (Over)', status: 'Stopped', progress: '0%', interval: 60*60*12
+Task.create name: 'Yahoo Sports (Ongoing)', status: 'Stopped', progress: '0%', interval: 60

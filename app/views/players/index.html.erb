@@ -5,27 +5,26 @@
         <p id="notice"><%= notice %></p>
 
         <h1>Listing Players</h1>
-
+        <%= paginate @players %>
         <table class="display table" cellspacing="0" width="100%">
           <thead>
             <tr>
               <th>Name</th>
               <th>Team</th>
+              <th>Action</th>
             </tr>
           </thead>
 
           <tbody>
             <% @players.each do |player| %>
               <tr>
-                <td><%= player.name %></td>
-                <td><%= player.team.name %></td>
+                <td><%= link_to player.name, player.url, :target => "_blank" %></td>
+                <td><%= link_to player.team.name, player.team.url, :target => "_blank" %></td>
+                <td><%= link_to 'Delete', player, method: :delete, data: { confirm: 'Are you sure?' } %></td>
               </tr>
             <% end %>
           </tbody>
         </table>
-
-        <br>
-
         <%= paginate @players %>
       </div>
     </div>
