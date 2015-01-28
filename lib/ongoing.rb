@@ -294,6 +294,7 @@ class Scrape
     ps = @a.get(SITE)
     ongoing_matches = ps.parser.css('li dl.stats > dt > a').select{|a| a.attributes['title'] && a.attributes['title'].value[/^Current/] }.map{|a| File.join(SITE, a.attributes['href'].value) }
     $logger.info "#{ongoing_matches.count} ongoing matches found"
+
     ongoing_matches.each do |match_url|
       meta = {
         league: match_url[/(?<=yahoo.com\/)[^\/]+/],
@@ -305,12 +306,13 @@ class Scrape
   end
 
   def get_match(match_url, meta)
-    p match_url
     $logger.info "Scraping match: #{match_url}"
-
-    match = Match.ongoing.where(url: match_url).first_or_initialize
-    match.attributes.merge!(meta)
     
+    match = Match.ongoing.where(url: match_url).first_or_initialize
+    
+    meta.each{|k,v|
+      match[k] = v
+    }
 
     resp = @a.try do |scr|
       scr.get(match_url)
