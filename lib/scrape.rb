@@ -374,7 +374,7 @@ class Scrape
     
     # match info
     begin
-      datetine = Time.parse(ps.css('#mediamodulematchheadergrandslam li.left > ul > li').first.xpath('text()').text.strip).to_s
+      datetime = Time.parse(ps.css('#mediamodulematchheadergrandslam li.left > ul > li').first.xpath('text()').text.strip).to_s
     rescue Exception => ex
       # datetime = nil
       $logger.info "No datetime value"
