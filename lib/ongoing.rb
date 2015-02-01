@@ -472,11 +472,18 @@ end
 trap("SIGINT") { throw :ctrl_c }
 
 catch :ctrl_c do
-  NSchedule.every($options[:interval].to_i) do
-    $logger.info("Start at #{Time.now.to_s}")
-    e = Scrape.new
-    e.start
-    $logger.info("Finish at #{Time.now.to_s}")
-    $task.update_attributes(last_exec: Time.now) if $task
+  while true
+    begin
+      NSchedule.every($options[:interval].to_i) do
+        $logger.info("Start at #{Time.now.to_s}")
+        e = Scrape.new
+        e.start
+        $logger.info("Finish at #{Time.now.to_s}")
+        $task.update_attributes(last_exec: Time.now) if $task
+      end
+    rescue Exception => ex
+      $logger.info "#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")
+      sleep 60
+    end
   end
 end
