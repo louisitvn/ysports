@@ -310,7 +310,7 @@ class Scrape
       season: ps.css('#seasons > option[selected]').first ? ps.css('#seasons > option[selected]').first.text.strip : nil
     )
     
-    match_urls = ps.css('tr.game.link:not(.pre)').map{|tr| File.join(SITE, tr.attributes['data-url'].value) }
+    match_urls = ps.css('tr.game.link:not(.pre):not(.live)').map{|tr| File.join(SITE, tr.attributes['data-url'].value) }
     $logger.info "#{match_urls.count} match url(s) found"
     match_urls.each do |match_url| 
       ActiveRecord::Base.transaction {  get_match(match_url, meta) }
@@ -362,11 +362,15 @@ class Scrape
       team1 = scrape_team(team1_url)
     end
 
+    return unless team1
+
     if Team.exists?(url: team2_url)
       team2 = Team.find_by_url(team2_url)
     else
       team2 = scrape_team(team2_url)
     end
+
+    return unless team2
     
     # match info
     match = Match.create(meta.merge(
@@ -380,7 +384,7 @@ class Scrape
     team1_stat = match.match_teams.new(team: team1)
     team2_stat = match.match_teams.new(team: team2)
     
-    team1_stat.attributes = ps.css('#mediasportsmatchteamstats > div > table > tbody > tr').map{|tr|  [tr.css('> th').first.text.strip.underscore.gsub(/\s+/, "_"), tr.css('> td:nth-child(2)').first.text.strip]}.to_h
+    team1_stat.attributes = ps.css('#mediasportsmatchteamstats > div > table > tbody > tr').map{|tr|  [tr.css('> th').first.text.strip.underscore.gsub(/\s+/, "_").gsub('%', 'percentage'), tr.css('> td:nth-child(2)').first.text.strip]}.to_h
     team1_stat[:score_1] = tdscore1[1].text.strip if tdscore1[1]
     team1_stat[:score_2] = tdscore1[2].text.strip if tdscore1[2]
     team1_stat[:score_3] = tdscore1[3].text.strip if tdscore1[3]
@@ -389,7 +393,7 @@ class Scrape
     team1_stat[:score_total] = tdscore1[6].text.strip if tdscore1[6]
     team1_stat.save!
 
-    team2_stat.attributes = ps.css('#mediasportsmatchteamstats > div > table > tbody > tr').map{|tr|  [tr.css('> th').first.text.strip.underscore.gsub(/\s+/, "_"), tr.css('> td:nth-child(3)').first.text.strip]}.to_h
+    team2_stat.attributes = ps.css('#mediasportsmatchteamstats > div > table > tbody > tr').map{|tr|  [tr.css('> th').first.text.strip.underscore.gsub(/\s+/, "_").gsub('%', 'percentage'), tr.css('> td:nth-child(3)').first.text.strip]}.to_h
     team2_stat[:score_1] = tdscore2[1].text.strip if tdscore2[1]
     team2_stat[:score_2] = tdscore2[2].text.strip if tdscore2[2]
     team2_stat[:score_3] = tdscore2[3].text.strip if tdscore2[3]
@@ -500,9 +504,23 @@ class Scrape
       return
     end
 
-    ps = @a.try do |scr|
-      scr.get(team_url).parser
+    ps = nil
+
+    3.times do |i|
+      ps = @a.try do |scr|
+        scr.get(team_url).parser
+      end
+
+      return if ps.nil?
+
+      if ps.css('div.team-info > h1').first
+        break
+      else
+        sleep 5
+      end
     end
+
+    return if ps.nil?
 
     team = Team.new
     team.url = team_url

@@ -169,6 +169,19 @@ class InitDbSchema < ActiveRecord::Migration
       t.integer :fumbles
       t.integer :fumbles_lost
 
+      t.float :shots_on_goal
+      t.float '1st'
+      t.float '2nd'
+      t.float '3rd'
+      t.float :ot
+      t.float :power_plays
+      t.float :converted
+      t.string :power_play_percentage
+      t.float :penalty_minutes
+      t.float :faceoffs_won
+      t.string :faceoff_percentage
+      t.float :hits
+      t.float :blocks
 
       t.timestamps null: false
     end
