@@ -283,8 +283,12 @@ end
 class Scrape
   SITE = 'http://sports.yahoo.com/'
   LEAGUES = [
-    'nfl', 'mlb', 'nhl', 'nba', 'nhl', 'ncaaf', 'ncaab', 'nascar', 'mma'
+    'nfl', 'mlb', 'nhl', 'nba', 'nhl', 'ncaaf', 'ncaab', 'nascar', 'mma', 'premier-league', 'mls', 'champions-league'
   ]
+
+  def soccer?(league)
+    ['premier-league', 'mls', 'champions-league'].include?(league.downcase)
+  end
 
   def initialize
     $logger.info "Scraper started"
@@ -295,7 +299,12 @@ class Scrape
 
   def start
     LEAGUES.each do |league|
-      scoreboard_url = File.join(SITE, league.downcase, 'scoreboard')
+      if soccer?(league)
+        scoreboard_url = File.join(SITE, 'soccer', league, 'scoreboard')
+      else
+        scoreboard_url = File.join(SITE, league.downcase, 'scoreboard')
+      end
+
       run(scoreboard_url, {league: league})
     end
   end
@@ -342,7 +351,10 @@ class Scrape
 
     File.open('/tmp/test.html', 'w') {|f| f.write resp.body}
     
-    if ps.css('table.linescore > tbody > tr:nth-child(1) > td > a').first
+    if soccer?(meta[:league])
+      team1_url = File.join(SITE, ps.css('div[class="team-info"] > div.name > a').first.attributes['href'].value)
+      team2_url = File.join(SITE, ps.css('div[class="team-info"] > div.name > a').last.attributes['href'].value)
+    elsif ps.css('table.linescore > tbody > tr:nth-child(1) > td > a').first
       team1_url = File.join(SITE, ps.css('table.linescore > tbody > tr:nth-child(1) > td > a').first.attributes['href'].value)
       team2_url = File.join(SITE, ps.css('table.linescore > tbody > tr:nth-child(2) > td > a').first.attributes['href'].value)
 
@@ -391,27 +403,66 @@ class Scrape
     team1_stat = match.match_teams.new(team: team1)
     team2_stat = match.match_teams.new(team: team2)
     
-    team1_stat.attributes = ps.css('#mediasportsmatchteamstats > div > table > tbody > tr').map{|tr|  [tr.css('> th').first.text.strip.underscore.gsub(/\s+/, "_").gsub('%', 'percentage'), tr.css('> td:nth-child(2)').first.text.strip]}.to_h
-    team1_stat[:score_1] = tdscore1[1].text.strip if tdscore1[1]
-    team1_stat[:score_2] = tdscore1[2].text.strip if tdscore1[2]
-    team1_stat[:score_3] = tdscore1[3].text.strip if tdscore1[3]
-    team1_stat[:score_4] = tdscore1[4].text.strip if tdscore1[4]
-    team1_stat[:score_ot] = tdscore1[5].text.strip if tdscore1[5]
-    team1_stat[:score_total] = tdscore1[6].text.strip if tdscore1[6]
-    team1_stat.save!
+    if soccer?(meta[:league])
+      team1_stat.score = ps.css('.boxscore > span.score').first.text.strip
+      team1_stat.possession = ps.css('h5[class="sports-hd"]').select{|h| h.text == 'Possession'}.first.next_element.css('> span').first.text.strip.to_f if ps.css('h5[class="sports-hd"]').select{|h| h.text == 'Possession'}.first
+      team1_stat.pass_accuracy = ps.css('h5[class="sports-hd"]').select{|h| h.text == 'Pass Accuracy'}.first.next_element.css('> span').first.text.strip.to_f if ps.css('h5[class="sports-hd"]').select{|h| h.text == 'Pass Accuracy'}.first
+      team1_stat.tackle_success = ps.css('h5[class="sports-hd"]').select{|h| h.text.downcase == 'tackle success'}.first.next_element.css('> span').first.text.strip.to_f if ps.css('h5[class="sports-hd"]').select{|h| h.text.downcase == 'tackle success'}.first
+      team1_stat.shots = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text == 'Shots'}.first.previous_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text == 'Shots'}.first
+      team1_stat.shots_on_goal = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('On Goal')}.first.previous_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('On Goal')}.first
+      team1_stat.corners = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Corners')}.first.previous_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Corners')}.first
+      team1_stat.saves = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Saves')}.first.previous_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Saves')}.first
+      team1_stat.offsides = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Offside')}.first.previous_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Offside')}.first
+      team1_stat.fouls = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Fouls')}.first.previous_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Fouls')}.first
+      team1_stat.yellows = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Yellows')}.first.previous_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Yellows')}.first
+      team1_stat.save!
+      
+      team2_stat.score = ps.css('.boxscore > span.score').last.text.strip
+      team2_stat.possession = ps.css('h5[class="sports-hd"]').select{|h| h.text == 'Possession'}.first.next_element.css('> span').last.text.strip.to_f if ps.css('h5[class="sports-hd"]').select{|h| h.text == 'Possession'}.first
+      team2_stat.pass_accuracy = ps.css('h5[class="sports-hd"]').select{|h| h.text == 'Pass Accuracy'}.first.next_element.css('> span').last.text.strip.to_f if ps.css('h5[class="sports-hd"]').select{|h| h.text == 'Pass Accuracy'}.first
+      team2_stat.tackle_success = ps.css('h5[class="sports-hd"]').select{|h| h.text.downcase == 'tackle success'}.first.next_element.css('> span').last.text.strip.to_f if ps.css('h5[class="sports-hd"]').select{|h| h.text.downcase == 'tackle success'}.first
+      team2_stat.shots = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text == 'Shots'}.first.next_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text == 'Shots'}.first
+      team2_stat.shots_on_goal = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('On Goal')}.first.next_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('On Goal')}.first
+      team2_stat.corners = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Corners')}.first.next_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Corners')}.first
+      team2_stat.saves = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Saves')}.first.next_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Saves')}.first
+      team2_stat.offsides = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Offside')}.first.next_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Offside')}.first
+      team2_stat.fouls = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Fouls')}.first.next_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Fouls')}.first
+      team2_stat.yellows = ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Yellows')}.first.next_element.text.strip.to_f if ps.css('li[class="bar-chart  sports-mod-row-seperator"] span[class="stat-heading sports-hd"]').select{|e| e.text.include?('Yellows')}.first
+      team2_stat.save!
+      
+    else
+      team1_stat.attributes = ps.css('#mediasportsmatchteamstats > div > table > tbody > tr').map{|tr|  [tr.css('> th').first.text.strip.underscore.gsub(/\s+/, "_").gsub('%', 'percentage'), tr.css('> td:nth-child(2)').first.text.strip]}.to_h
+      team1_stat[:score_1] = tdscore1[1].text.strip if tdscore1[1]
+      team1_stat[:score_2] = tdscore1[2].text.strip if tdscore1[2]
+      team1_stat[:score_3] = tdscore1[3].text.strip if tdscore1[3]
+      team1_stat[:score_4] = tdscore1[4].text.strip if tdscore1[4]
+      team1_stat[:score_ot] = tdscore1[5].text.strip if tdscore1[5]
+      team1_stat[:score_total] = tdscore1[6].text.strip if tdscore1[6]
+      team1_stat.save!
 
-    team2_stat.attributes = ps.css('#mediasportsmatchteamstats > div > table > tbody > tr').map{|tr|  [tr.css('> th').first.text.strip.underscore.gsub(/\s+/, "_").gsub('%', 'percentage'), tr.css('> td:nth-child(3)').first.text.strip]}.to_h
-    team2_stat[:score_1] = tdscore2[1].text.strip if tdscore2[1]
-    team2_stat[:score_2] = tdscore2[2].text.strip if tdscore2[2]
-    team2_stat[:score_3] = tdscore2[3].text.strip if tdscore2[3]
-    team2_stat[:score_4] = tdscore2[4].text.strip if tdscore2[4]
-    team2_stat[:score_ot] = tdscore2[5].text.strip if tdscore2[5]
-    team2_stat[:score_total] = tdscore2[6].text.strip if tdscore2[6]
-    team2_stat.save!
-
-    # player statistics
+      team2_stat.attributes = ps.css('#mediasportsmatchteamstats > div > table > tbody > tr').map{|tr|  [tr.css('> th').first.text.strip.underscore.gsub(/\s+/, "_").gsub('%', 'percentage'), tr.css('> td:nth-child(3)').first.text.strip]}.to_h
+      team2_stat[:score_1] = tdscore2[1].text.strip if tdscore2[1]
+      team2_stat[:score_2] = tdscore2[2].text.strip if tdscore2[2]
+      team2_stat[:score_3] = tdscore2[3].text.strip if tdscore2[3]
+      team2_stat[:score_4] = tdscore2[4].text.strip if tdscore2[4]
+      team2_stat[:score_ot] = tdscore2[5].text.strip if tdscore2[5]
+      team2_stat[:score_total] = tdscore2[6].text.strip if tdscore2[6]
+      team2_stat.save!
+    end
     
-    if ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?('Goaltending')}.first or ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?('Passing')}.first
+    # player statistics
+    if soccer?(meta[:league])
+      groups = ['Goalkeepers', 'Defenders', 'Defenders', 'Forwards']
+      groups.each do |group|
+        headers1 = ps.css('div.full:nth-child(1) > h5').select{|x| x.text.include?(group)}.first.next_element.css('table > thead > tr > th')[1..-1].map{|e| "#{group}_#{e.text.strip}".downcase }
+        rows1 = ps.css('div.full:nth-child(1) > h5').select{|x| x.text.include?(group)}.first.next_element.css('table > tbody > tr')
+        process_players(headers1, rows1, match, team1)
+
+        headers2 = ps.css('div.full:nth-child(2) > h5').select{|x| x.text.include?(group)}.first.next_element.css('table > thead > tr > th')[1..-1].map{|e| "#{group}_#{e.text.strip}".downcase }
+        rows2 = ps.css('div.full:nth-child(2) > h5').select{|x| x.text.include?(group)}.first.next_element.css('table > tbody > tr')
+        process_players(headers2, rows2, match, team2)
+      end
+    elsif ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?('Goaltending')}.first or ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?('Passing')}.first
       if ps.css('#mediasportsmatchstatsbyplayer h3').select{|h3| h3.text.include?('Goaltending')}.first
         groups = ['Goaltending', 'Skaters']
       else
@@ -538,6 +589,7 @@ class Scrape
   end
 end
 
+
 # trap Ctrl-C
 trap("SIGINT") { throw :ctrl_c }
 
@@ -548,12 +600,13 @@ catch :ctrl_c do
         $logger.info("Start at #{Time.now.to_s}")
         e = Scrape.new
         e.start
-        #e.run('http://sports.yahoo.com/nfl/scoreboard/?week=20&phase=3&season=2014', {league: 'nfl'})
+        #e.run('http://sports.yahoo.com/soccer/champions-league/scoreboard/', {league: 'premier-league'})
         $logger.info("Finish at #{Time.now.to_s}")
         $task.update_attributes(last_exec: Time.now) if $task
       end
     rescue Exception => ex
       $logger.info "#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")
+      $task.update_attributes(progress: "#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")) if $task
       sleep 60
     end
   end

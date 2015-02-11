@@ -83,6 +83,8 @@ class Task < ActiveRecord::Base
         cmd = "ruby #{PATH_OVER} -t #{self.id} -i #{self.interval}"
       end
 
+      p cmd
+
       process = IO.popen(cmd)
       Process.detach(process.pid)
       self.pid = process.pid

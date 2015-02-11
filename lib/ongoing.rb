@@ -483,6 +483,7 @@ catch :ctrl_c do
       end
     rescue Exception => ex
       $logger.info "#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")
+      $task.update_attributes(progress: "#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")) if $task
       sleep 60
     end
   end

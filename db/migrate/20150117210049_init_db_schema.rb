@@ -122,6 +122,54 @@ class InitDbSchema < ActiveRecord::Migration
       t.string :goaltending_sv_percentage
       t.string :goaltending_toi
 
+      # soccers
+      t.float :goalkeepers_g
+      t.float :goalkeepers_sav
+      t.float :goalkeepers_gc
+      t.float :goalkeepers_gk
+      t.float :goalkeepers_fc
+      t.float :goalkeepers_fs
+      t.float :goalkeepers_y
+      t.float :goalkeepers_r
+      t.float :goalkeepers_pen
+      t.float :goalkeepers_mins
+      t.float :defenders_g
+      t.float :defenders_ga
+      t.float :defenders_sho
+      t.float :defenders_ta
+      t.float :defenders_clr
+      t.float :defenders_cor
+      t.float :defenders_fc
+      t.float :defenders_fs
+      t.float :defenders_y
+      t.float :defenders_r
+      t.float :defenders_pen
+      t.float :defenders_mins
+      t.float :defenders_g
+      t.float :defenders_ga
+      t.float :defenders_sho
+      t.float :defenders_ta
+      t.float :defenders_clr
+      t.float :defenders_cor
+      t.float :defenders_fc
+      t.float :defenders_fs
+      t.float :defenders_y
+      t.float :defenders_r
+      t.float :defenders_pen
+      t.float :defenders_mins
+      t.float :forwards_g
+      t.float :forwards_ga
+      t.float :forwards_sho
+      t.float :forwards_pas
+      t.float :forwards_fk
+      t.float :forwards_cor
+      t.float :forwards_fc
+      t.float :forwards_fs
+      t.float :forwards_y
+      t.float :forwards_r
+      t.float :forwards_pen
+      t.float :forwards_mins
+
       t.timestamps null: false
     end
 
@@ -182,6 +230,19 @@ class InitDbSchema < ActiveRecord::Migration
       t.string :faceoff_percentage
       t.float :hits
       t.float :blocks
+
+      # Soccers
+      t.integer :score
+      t.float :possession
+      t.float :tackle_success
+      t.float :pass_accuracy
+      t.float :shots
+      t.float :shots_on_goal
+      t.float :corners
+      t.float :saves
+      t.float :offsides
+      t.float :fouls
+      t.float :yellows
 
       t.timestamps null: false
     end
