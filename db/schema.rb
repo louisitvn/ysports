@@ -11,9 +11,33 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150118124946) do
+ActiveRecord::Schema.define(version: 20150304234141) do
 
-  create_table "match_players", force: :cascade do |t|
+  create_table "leagues", force: :cascade do |t|
+    t.string   "name",       limit: 255
+    t.string   "sport_name", limit: 255
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+  end
+
+  create_table "matches", force: :cascade do |t|
+    t.string   "season",       limit: 255
+    t.string   "url",          limit: 255
+    t.datetime "date"
+    t.string   "title",        limit: 255
+    t.string   "status",       limit: 255, default: "over"
+    t.integer  "home_team_id", limit: 4
+    t.integer  "away_team_id", limit: 4
+    t.datetime "created_at",                                null: false
+    t.datetime "updated_at",                                null: false
+  end
+
+  add_index "matches", ["away_team_id"], name: "index_matches_on_away_team_id", using: :btree
+  add_index "matches", ["home_team_id"], name: "index_matches_on_home_team_id", using: :btree
+
+  create_table "player_statistics", force: :cascade do |t|
+    t.integer  "player_id",                 limit: 4
+    t.integer  "match_id",                  limit: 4
     t.float    "passing_comp",              limit: 24
     t.float    "passing_att",               limit: 24
     t.float    "passing_yds",               limit: 24
@@ -134,11 +158,35 @@ ActiveRecord::Schema.define(version: 20150118124946) do
     t.float    "forwards_mins",             limit: 24
     t.datetime "created_at",                            null: false
     t.datetime "updated_at",                            null: false
-    t.integer  "player_id",                 limit: 4
-    t.integer  "match_id",                  limit: 4
   end
 
-  create_table "match_teams", force: :cascade do |t|
+  add_index "player_statistics", ["match_id"], name: "index_player_statistics_on_match_id", using: :btree
+  add_index "player_statistics", ["player_id"], name: "index_player_statistics_on_player_id", using: :btree
+
+  create_table "players", force: :cascade do |t|
+    t.string   "name",       limit: 255
+    t.string   "url",        limit: 255
+    t.integer  "team_id",    limit: 4
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+  end
+
+  add_index "players", ["team_id"], name: "index_players_on_team_id", using: :btree
+
+  create_table "tasks", force: :cascade do |t|
+    t.string   "name",       limit: 255
+    t.integer  "interval",   limit: 4,   default: 3600
+    t.integer  "pid",        limit: 4
+    t.string   "progress",   limit: 255
+    t.string   "status",     limit: 255
+    t.datetime "last_exec"
+    t.datetime "created_at",                            null: false
+    t.datetime "updated_at",                            null: false
+  end
+
+  create_table "team_statistics", force: :cascade do |t|
+    t.integer  "team_id",                limit: 4
+    t.integer  "match_id",               limit: 4
     t.integer  "score_1",                limit: 4
     t.integer  "score_2",                limit: 4
     t.integer  "score_3",                limit: 4
@@ -196,45 +244,29 @@ ActiveRecord::Schema.define(version: 20150118124946) do
     t.float    "yellows",                limit: 24
     t.datetime "created_at",                         null: false
     t.datetime "updated_at",                         null: false
-    t.integer  "team_id",                limit: 4
-    t.integer  "match_id",               limit: 4
   end
 
-  create_table "matches", force: :cascade do |t|
-    t.string   "league",     limit: 255
-    t.string   "season",     limit: 255
-    t.string   "url",        limit: 255
-    t.datetime "datetime"
-    t.string   "title",      limit: 255
-    t.string   "status",     limit: 255, default: "over"
-    t.datetime "created_at",                              null: false
-    t.datetime "updated_at",                              null: false
-  end
-
-  create_table "players", force: :cascade do |t|
-    t.string   "name",       limit: 255
-    t.string   "url",        limit: 255
-    t.datetime "created_at",             null: false
-    t.datetime "updated_at",             null: false
-    t.integer  "team_id",    limit: 4
-  end
-
-  create_table "tasks", force: :cascade do |t|
-    t.string   "name",       limit: 255
-    t.integer  "interval",   limit: 4,   default: 3600
-    t.integer  "pid",        limit: 4
-    t.string   "progress",   limit: 255
-    t.string   "status",     limit: 255
-    t.datetime "last_exec"
-    t.datetime "created_at",                            null: false
-    t.datetime "updated_at",                            null: false
-  end
+  add_index "team_statistics", ["match_id"], name: "index_team_statistics_on_match_id", using: :btree
+  add_index "team_statistics", ["team_id"], name: "index_team_statistics_on_team_id", using: :btree
 
   create_table "teams", force: :cascade do |t|
-    t.string   "name",       limit: 255
+    t.string   "full_name",  limit: 255
+    t.string   "prefix",     limit: 255
+    t.string   "city",       limit: 255
     t.string   "url",        limit: 255
+    t.integer  "league_id",  limit: 4
     t.datetime "created_at",             null: false
     t.datetime "updated_at",             null: false
   end
 
+  add_index "teams", ["league_id"], name: "index_teams_on_league_id", using: :btree
+
+  add_foreign_key "matches", "teams", column: "away_team_id"
+  add_foreign_key "matches", "teams", column: "home_team_id"
+  add_foreign_key "player_statistics", "matches"
+  add_foreign_key "player_statistics", "players"
+  add_foreign_key "players", "teams"
+  add_foreign_key "team_statistics", "matches"
+  add_foreign_key "team_statistics", "teams"
+  add_foreign_key "teams", "leagues"
 end
