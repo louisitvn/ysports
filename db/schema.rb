@@ -23,7 +23,7 @@ ActiveRecord::Schema.define(version: 20150304234141) do
   create_table "matches", force: :cascade do |t|
     t.string   "season",       limit: 255
     t.string   "url",          limit: 255
-    t.datetime "date"
+    t.datetime "datetime"
     t.string   "title",        limit: 255
     t.string   "status",       limit: 255, default: "over"
     t.integer  "home_team_id", limit: 4
