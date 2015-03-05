@@ -3,7 +3,7 @@ class CreateNormalizedMatch < ActiveRecord::Migration
     create_table :matches do |t|
       t.string :season
       t.string :url
-      t.datetime :date
+      t.datetime :datetime
       t.string :title
       t.string :status, default: Match::OVER
       t.integer :home_team_id, index: true
