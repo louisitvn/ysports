@@ -348,12 +348,14 @@ class Scrape
       team1 = Team.find_by(url: team1_url)
     else
       team1 = scrape_team(team1_url)
+      team1.update(league: league)
     end
 
     if Team.exists?(url: team2_url)
       team2 = Team.find_by(url: team2_url)
     else
       team2 = scrape_team(team2_url)
+      team2.update(league: league)
     end
 
     match.update(title: "#{team1.full_name} vs. #{team2.full_name}", home_team: team2, away_team: team1)
