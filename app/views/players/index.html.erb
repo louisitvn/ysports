@@ -19,7 +19,7 @@
             <% @players.each do |player| %>
               <tr>
                 <td><%= link_to player.name, player.url, :target => "_blank" %></td>
-                <td><%= link_to player.team.name, player.team.url, :target => "_blank" %></td>
+                <td><%= link_to player.team.full_name, player.team.url, :target => "_blank" %></td>
                 <td><%= link_to 'Delete', player, method: :delete, data: { confirm: 'Are you sure?' } %></td>
               </tr>
             <% end %>
