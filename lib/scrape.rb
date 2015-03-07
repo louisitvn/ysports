@@ -341,14 +341,15 @@ class Scrape
 
   def get_match(match_url, meta)
     $logger.info "Scraping match: #{match_url}"
-    
+
     # mark a match as OVER
     if match = Match.ongoing.find_by(url: match_url)
       match.update(status: Match::OVER)
     end
 
-    if Match.exists?(url: match_url)
-      $logger.info "Match already exists"
+    # It's not necessary to scrape finished matches that were scraped more than two days ago
+    if Match.exists?(['url = :url AND updated_at >= :updated_at', url: match_url, updated_at: 2.days.ago])
+      $logger.info "Match already exists and was scraped 2 days ago"
       return
     end
 
