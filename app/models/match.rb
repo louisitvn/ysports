@@ -12,12 +12,4 @@ class Match < ActiveRecord::Base
 
   scope :over, -> { where(status: OVER) }
   scope :ongoing, -> { where(status: ONGOING) }
-
-  def home_player_statistics
-    # match_players.joins(:player).where(['players.team_id = ?', home_team.id])
-  end
-
-  def away_player_statistics
-    # match_players.joins(:player).where(['players.team_id = ?', away_team.id])
-  end
 end
