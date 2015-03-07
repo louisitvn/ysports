@@ -334,7 +334,7 @@ class Scrape
     # if match already finished
     if ps.css('li.status > em').select{|e| e.text[/live/i]}.empty?
       $logger.info "Match already done: #{match_url}"
-      match.destroy
+      match.update(status: Match::OVER)
       return true
     else
       match.save! if match.new_record?
