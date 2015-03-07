@@ -71,8 +71,8 @@
           </thead>
 
           <tbody>
-            <% @match.home_team.players.each do |player| %>
-              <% player_stat = PlayerStatistic.find_by(player: player, match: @match) %>
+            <% home_team_players_stats = PlayerStatistic.where(player: @match.home_team.players, match: @match) %>
+            <% home_team_players_stats.each do |player_stat| %>
               <tr>
                 <td><%= link_to player_stat.player.name, player_path(player_stat.player) %></td>
                 <td><%= raw player_stat.attributes.select{|k,v| !['created_at', 'updated_at', 'id', 'match_id', 'player_id'].include?(k.to_s) && !v.blank?}.map{|k,v| "#{k}:<strong>#{v}</strong>" }.join(" | ") %></td>
@@ -93,8 +93,8 @@
           </thead>
 
           <tbody>
-            <% @match.away_team.players.each do |player| %>
-              <% player_stat = PlayerStatistic.find_by(player: player, match: @match) %>
+            <% away_team_players_stats = PlayerStatistic.where(player: @match.away_team.players, match: @match) %>
+            <% away_team_players_stats.each do |player_stat| %>
               <tr>
                 <td><%= link_to player_stat.player.name, player_path(player_stat.player) %></td>
                 <td><%= raw player_stat.attributes.select{|k,v| !['created_at', 'updated_at', 'id', 'match_id', 'player_id'].include?(k.to_s) && !v.blank?}.map{|k,v| "#{k}:<strong>#{v}</strong>" }.join(" | ") %></td>
