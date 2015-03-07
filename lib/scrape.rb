@@ -408,7 +408,9 @@ class Scrape
       url: match_url,
       status: 'over',
       datetime: datetime,
-      season: meta[:season]
+      season: meta[:season],
+      away_team: team1,
+      home_team: team2
     )
 
     team1_stat = TeamStatistic.new(team: team1, match: match)
