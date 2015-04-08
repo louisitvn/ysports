@@ -78,18 +78,30 @@ class NSchedule
 end
 
 # Model
+class League < ActiveRecord::Base
+  has_many :teams
+end
+
 class Team < ActiveRecord::Base
-  has_many :team_matches
-  has_many :players
+  has_many :players, dependent: :destroy
+  belongs_to :league
+
+  has_many :home_team_matches, class_name: 'Match'
+  has_many :away_team_matches, class_name: 'Match'
 end
 
 class Player < ActiveRecord::Base
   belongs_to :team
-  has_many :match_players
 end
 
 class Match < ActiveRecord::Base
-  has_many :match_teams
+  belongs_to :away_team, class_name: 'Team'
+  belongs_to :home_team, class_name: 'Team'
+
+  has_many :player_statistics
+
+  has_one :home_team_statistics, class_name: 'TeamStatistic'
+  has_one :away_team_statistics, class_name: 'TeamStatistic'
 
   OVER = 'over'
   ONGOING = 'ongoing'
@@ -98,13 +110,13 @@ class Match < ActiveRecord::Base
   scope :ongoing, -> { where(status: ONGOING) }
 end
 
-class MatchTeam < ActiveRecord::Base
-  belongs_to :team
+class PlayerStatistic < ActiveRecord::Base
+  belongs_to :player
   belongs_to :match
 end
 
-class MatchPlayer < ActiveRecord::Base
-  belongs_to :player
+class TeamStatistic < ActiveRecord::Base
+  belongs_to :team
   belongs_to :match
 end
 
@@ -329,15 +341,15 @@ class Scrape
 
   def get_match(match_url, meta)
     $logger.info "Scraping match: #{match_url}"
-    
+
     # mark a match as OVER
-    if Match.ongoing.exists?(url: match_url)
-      match = Match.ongoing.where(url: match_url).first
-      match.destroy if match
+    if match = Match.ongoing.find_by(url: match_url)
+      match.update(status: Match::OVER)
     end
 
-    if Match.exists?(url: match_url)
-      $logger.info "Match already exists"
+    # It's not necessary to scrape finished matches that were scraped more than two days ago
+    if Match.exists?(['url = :url AND updated_at >= :updated_at', url: match_url, updated_at: 2.days.ago])
+      $logger.info "Match already exists and was scraped 2 days ago"
       return
     end
 
@@ -350,7 +362,7 @@ class Scrape
     ps = resp.parser
 
     File.open('/tmp/test.html', 'w') {|f| f.write resp.body}
-    
+
     if soccer?(meta[:league])
       team1_url = File.join(SITE, ps.css('div[class="team-info"] > div.name > a').first.attributes['href'].value)
       team2_url = File.join(SITE, ps.css('div[class="team-info"] > div.name > a').last.attributes['href'].value)
@@ -371,7 +383,7 @@ class Scrape
     if Team.exists?(url: team1_url)
       team1 = Team.find_by_url(team1_url)
     else
-      team1 = scrape_team(team1_url)
+      team1 = scrape_team(team1_url, meta)
     end
 
     return unless team1
@@ -379,7 +391,7 @@ class Scrape
     if Team.exists?(url: team2_url)
       team2 = Team.find_by_url(team2_url)
     else
-      team2 = scrape_team(team2_url)
+      team2 = scrape_team(team2_url, meta)
     end
 
     return unless team2
@@ -392,16 +404,18 @@ class Scrape
       $logger.info "No datetime value"
     end
 
-    match = Match.create(meta.merge(
-        title: "#{team1.name} vs. #{team2.name}",
-        url: match_url,
-        status: 'over',
-        datetime: datetime
-      )
+    match = Match.create(
+      title: "#{team1.full_name} vs. #{team2.full_name}",
+      url: match_url,
+      status: 'over',
+      datetime: datetime,
+      season: meta[:season],
+      away_team: team1,
+      home_team: team2
     )
 
-    team1_stat = match.match_teams.new(team: team1)
-    team2_stat = match.match_teams.new(team: team2)
+    team1_stat = TeamStatistic.new(team: team1, match: match)
+    team2_stat = TeamStatistic.new(team: team2, match: match)
     
     if soccer?(meta[:league])
       team1_stat.score = ps.css('.boxscore > span.score').first.text.strip
@@ -504,7 +518,7 @@ class Scrape
 
       return if player.nil?
 
-      player_stat = player.match_players.where(match_id: match.id, player_id: player.id).first_or_initialize
+      player_stat = PlayerStatistic.find_or_initialize_by(match_id: match.id, player_id: player.id)
       
       # extract attributes
       attrs = {}
@@ -555,7 +569,7 @@ class Scrape
   end
 
 
-  def scrape_team(team_url)
+  def scrape_team(team_url, meta)
     $logger.info "Scraping team: #{team_url}"
     if Team.exists?(url: team_url)
       $logger.info "Team already exists"
@@ -581,10 +595,11 @@ class Scrape
     return if ps.nil?
 
     team = Team.new
+    team.league = League.find_or_create_by(name: meta[:league])
     team.url = team_url
-    team.name = ps.css('div.team-info > h1').first.text.strip
+    team.full_name = ps.css('div.team-info > h1').first.text.strip
     team.save!
-    $logger.info "Team [#{team.name}] created"
+    $logger.info "Team [#{team.full_name}] created"
     return team
   end
 end

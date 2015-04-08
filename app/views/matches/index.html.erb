@@ -23,7 +23,7 @@
               <tr>
                 <td><%= link_to match.title, match %></td>
                 <td><%= match.datetime %></td>
-                <td><%= match.league.upcase if match.league %></td>
+                <td><%= match.home_team.league.name %></td>
                 <td><%= match.season %></td>
                 <td><%= link_to 'Y! Sports', match.url, target: '_blank' %></td>
                 <td><%= link_to 'Delete', match, method: :delete, data: { confirm: 'Are you sure?' } %></td>
@@ -51,7 +51,7 @@
               <tr>
                 <td><%= link_to match.title, match %></td>
                 <td><%= match.datetime %></td>
-                <td><%= match.league.upcase if match.league %></td>
+                <td><%= match.home_team.league.name %></td>
                 <td><%= match.season %></td>
                 <td><%= link_to 'Y! Sports', match.url, target: '_blank' %></td>
                 <td><%= link_to 'Delete', match, method: :delete, data: { confirm: 'Are you sure?' } %></td>
